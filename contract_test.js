@@ -29,7 +29,7 @@ describe('Contract', function() {
 
         it('Term is added to contract with configured name', function () {
            assert.equal(typeof contract.terms.StorageHandler, 'object');
-           assert.equal(contract.terms.StorageHandler.get instanceof Contract.TermRule, true);
+           assert.equal(contract.terms.StorageHandler.get instanceof Contract.TermAgreement, true);
         });
 
         it('Adding a verbose config vs. lite will end up with the same config', function () {
@@ -120,10 +120,12 @@ describe('Contract', function() {
 
         contract.contractify(LocalStorage);
 
-        var storage = new LocalStorage();
+        const storage = new LocalStorage();
+        const saveAttr = Symbol.for('_fn_save');
 
         it('Will tweak the prototype', function() {
-            assert.equal(typeof LocalStorage.prototype._c_save, 'function');
+
+            assert.equal(typeof LocalStorage.prototype[saveAttr], 'function');
         });
 
         it('Will validate the passed arguments', function() {
@@ -134,15 +136,16 @@ describe('Contract', function() {
         it('Will validate the return value', function() {
 
             // Force prototype to return number
-            LocalStorage.prototype._c_save = function(name, handler) {return 1;};
+            LocalStorage.prototype[saveAttr] = function(name, handler) {return 1;};
 
             assert.throws(storage.save.bind(storage, '9', function(){}), function(err) {
                 return (err.toString().indexOf('number') !== -1);
             });
 
-            LocalStorage.prototype._c_save = function(name, handler) {return '1';};
+            LocalStorage.prototype[saveAttr] = function(name, handler) {return '1';};
 
             assert.equal(storage.save('9', function(){}), '1');
         });
+
     });
 });

@@ -1,6 +1,8 @@
 'use strict';
 
-var reflect = require('./reflect');
+const help          = require('./help');
+const Errors        = require('./errors');
+const TermAgreement = require('./term-agreement');
 
 /**
  * Let's make sure our object/classes have the behaviour
@@ -9,6 +11,8 @@ var reflect = require('./reflect');
  * For minified code, argument names get scrambled, so 
  * we should only legitamtely use arg_length for 
  * contract argument validation
+ *
+ * @todo  cleanup class names
  * 
  * `````````````````````````````````````````````````````````
  * Contract.addTerm('StorageHandler', {'save' : 2,'get':1 });
@@ -49,321 +53,173 @@ var reflect = require('./reflect');
  * ````````````````````````````````````````````````````````
  */
 
+class Contract {
+    constructor(validator) {
 
-var REGEX_MODEL = /^[A-Z]/;
+        this.validator = validator;
+        this.terms     = {};
 
-var Errors = {
-    missingDefinition : function(className, funcName) {
-        throw new Error(
-            className +  ' Interface | missing_definition | @' + funcName
-        );
-    },
-    missingArgs : function(className, funcName, argNames) {
-        throw new Error(
-           className +  ' Interface | missing_args | expects @' + funcName + '(' + argNames.join(', ') + ')'
-        );
-    },
-    badArgName : function(className, funcName, validArgName, badArgName, idx) {
-        throw new Error(
-            className +  ' Interface |  bad_argument_name (' + ( idx) + ') | expects ('+ validArgName + ') not('+ badArgName +') for @' + funcName + ' '
-        );
-    },
-    badReturn : function(className, funcName, validReturnType, invalidReturnType) {
-        throw new Error(
-           className +  ' | bad_return | expects `' + validReturnType + '` not `' + invalidReturnType + '`'
-        );
+        this.obligations = {
+            required : function(val) {
+                return (val !== undefined);
+            },
+            _default : function(val, obligation) {
+                // use https://github.com/chriso/validator.js
+                // and replace with
+                // 'is' + obligation();
+                // 
+                return (typeof val === obligation);
+            }
+        };
     }
-};
 
-function TermRule(className, method, requirements) {
-    var breakdown = method.split('->');
-    
-    this.fromClass    = className;
-    this.method       = breakdown[0];
-    this.returnType   = breakdown[1] || undefined;
-    this.argLength    = 0;
-    this.requirements = [];
-    this.argNames     = [];
-}
+    addTerm(agreement, terms) {
 
-TermRule.prototype.validateArgs = function(args) {
-   
-    for (var i in this.requirements) {
+        if (typeof agreement === 'object') {
+            terms = agreement.methods;
+            agreement  = agreement.name;
+        }
 
-        var shouldBe    = this.requirements[i];
-        var argType     = (typeof args[i]);
-        var argPosition = 1 + parseInt(i);
+        this.terms[agreement] = this.getTerms(agreement);
 
-        if (argType !== shouldBe) {
-            throw new Error('@' + this.method  + ' | bad_arg | expects type `' + shouldBe + '` for arg(' +  argPosition + ', '+ this.argNames[i] + ')' );
+        for (const method in terms) {
+            const term        = new TermAgreement(agreement, method);
+
+            term.readRequirements(terms[method]);
+            this.terms[agreement][term.method] = term;
         }
     }
-};
 
-TermRule.prototype.readRequirements = function(requirements) {
+    getTerms(agreement) {
 
-    requirements = requirements || [];
+        if (typeof agreement === 'string') {
+            return this.terms[agreement] || {};
+        }
 
-    var isConfig = (typeof requirements === 'object' && requirements.args);
-
-    if (isConfig) {
-        this.returnType = requirements.return;
-        requirements    = requirements.args || [];
+        throw new Error('Cannot comprehend agreements not called by name');
     }
 
-    if (!Array.isArray(requirements)) {
-        requirements = [requirements];
+    checkAgreement(Model, agreement) {
+
+        const terms  = this.getTerms(agreement);
+        let test     = Model;
+
+        if (typeof Model === 'function') {
+            test = Model.prototype;
+        }  
+
+        for (const method in terms) {
+
+            this.checkTerms(
+                Model, 
+                method, 
+                test[method],
+                terms[method], 
+                terms
+            );
+        }
     }
 
-    for (var i in requirements) {
+    agreement(Model, terms) {
 
-        var details    = null;
-        var req        = requirements[i];
-        var hasDetails = (req.indexOf(':') !== -1);
+        terms = Array.isArray(terms) ? terms : [terms];
+
+        terms.map(term => {
+            this.checkAgreement(Model, term);
+        });
+
+        return true;
+    }
+
+    checkTerms(Model, methodName, method, rules) {
+
+        if (method === undefined) {
+            Errors.missingDefinition(Model, methodName);
+        }
+
+        // Cache args on method
+        method.$args = help.methodArgs(method);
+
+        const argsMismatch = (method.$args.length !== rules.getLength());
+
+        if (argsMismatch) {
+            Errors.missingArgs(Model, methodName, rules.getArgNames());
+        }
+
+        for (const i in method.$args) {
+            const arg  = rules.args[i];
+            arg.testArg(method.$args[i]);
+        }
+
+        return rules;
+    }
+
+    reBind(Model, methodName, terms) {
+        const newAttr   = Symbol.for('_fn_' + methodName);
+        const hasMethod = (Model.prototype[methodName]);
+
+        // @note a method can fulfill multple contracts
+        //       unsure how below will be affected
+        const method = Model.prototype[newAttr] = Model.prototype[methodName];
+
         
-        if (hasDetails) {
-           details = req.split(':');
 
-           req = details[0];
-           details = details[1];
-        } else {
-            var isModel = REGEX_MODEL.test(req);
+        Model.prototype[methodName] = function() {
 
-            if (isModel) {
-                details = '' + req;
-            } else if (req === 'callback' || req === 'cb') {
-                details = 'function';
-            } else if (req === 'options'){
-                details = 'object';
-            }
+            const methodTerms = Contract.prototype.checkTerms(
+                Model, 
+                methodName, 
+                method, 
+                terms
+            );
+
+            methodTerms.validateArgs(arguments);
+
+            const res = Model.prototype[newAttr].call(this, arguments);
+
+            methodTerms.validateReturn(res);
+
+            return res;
+        };
+
+        // @todo move for newAttr above to only using original
+        Model.prototype[methodName]._original = Model.prototype[newAttr];
+    }
+
+    /**
+     * Re-bind model methods with functions that 
+     * validate the arguments and return types
+     *
+     * @param  {Function} Model
+     * @return {Function}
+     */
+    contractify(Model) {
+
+        if (!Model.agreements) {
+            return;
         }
 
-        if (details !== null) {
-            this.requirements.push(details);
-        }
+        for (const i in Model.agreements) {
 
-        this.argLength += 1;
+           const agreement  = Model.agreements[i];
+           const terms = this.getTerms(agreement);
 
-        this.argNames.push(req);
-    }
-}
+           for (const method in terms) {
+                const noExpectedArgs = (terms[method].getLength() === 0);
 
-
-
-function Contract(validator) {
-
-    this.validator = validator;
-    this.terms     = {};
-
-    this.obligations = {
-        required : function(val) {
-            return (val !== undefined);
-        },
-        _default : function(val, obligation) {
-            // use https://github.com/chriso/validator.js
-            // and replace with
-            // 'is' + obligation();
-            // 
-            return (typeof val === obligation);
-        }
-    };
-}
-
-Contract.prototype.addTerm =  function(name, rules) {
-
-    if (typeof name === 'object') {
-        rules = name.methods;
-        name  = name.name;
-    }
-
-    this.terms[name] = this.terms[name] || {};
-
-    for (var method in rules) {
-        var rule        = new TermRule(name, method);
-        var methodRules = rules[rule.method];
-
-        rule.readRequirements(rules[method]);
-        this.terms[name][rule.method] = rule;
-    }
-};
-
-Contract.prototype.getTerm = function(term) {
-    return this.terms[term]  || {};
-};
-
-Contract.prototype.checkAgreement = function(Model, terms) {
-    var rules = {};
-
-    if (typeof terms === 'string') {
-        rules = this.terms[terms];
-    } else if (typeof terms === 'object') {
-        // @todo
-    }
-
-    var test      = Model;
-    var className = '';
-
-    if (typeof Model === 'function') {
-        test =  Model.prototype;
-        className = reflect.getClassName(Model.toString());
-    }  
-
-    for (var method in rules) {
-
-        this.functionTerms(
-            className, 
-            method, 
-            test[method],
-            rules[method], 
-            terms
-        );
-    }
-}
-
-Contract.prototype.agreement = function(Model, terms) {
-
-    if (!Array.isArray(terms)) {
-        terms = [terms];
-    }
-
-    for (var i in terms) {
-        this.checkAgreement(Model, terms[i]);
-    }
-
-    return true;
-};
-
-
-Contract.prototype.functionTerms =  function(className, funcName, method, rules) {
-
-    className = className || '';
-
-    if (method === undefined) {
-        Errors.missingDefinition(className, funcName);
-    }
-
-    var fncArgs = reflect.getParamNames(method);
-
-    var argLengthMisMatch = (fncArgs.length !==  rules.argLength);
-
-    // Rules that include argument names
-    if (argLengthMisMatch) {
-        Errors.missingArgs(className, funcName, rules.argNames);
-    }
-
-    for (var i in fncArgs) {
-        var idx             = 1 + parseInt(i);
-        var argName         = rules.argNames[i];
-        var fncArgName      = fncArgs[i];
-        var argNameMisMatch = (fncArgName !== argName);
-
-        if (argNameMisMatch) {
-            Errors.badArgName(className, funcName, argName, fncArgName, idx);
+                if (noExpectedArgs) {
+                    continue;
+                }
+                
+                this.reBind(Model, method, terms[method]); 
+           }
        }
+
+       return Model;
     }
 
-    return rules;
-};
-
-Contract.prototype.reBind = function(Model, className, method, terms) {
-
-    var self = this;
-    var params = []
-    var hasMethod = (Model.prototype[method]);
-
-    if (hasMethod) {
-        params = reflect.getParamNames(Model.prototype[method]);
-        Model.prototype[method].params = params;
-    }
-
-    Model.prototype['_c_' + method] = Model.prototype[method];
-
-    Model.prototype[method] = function() {
-
-        var methodRules = Contract.prototype.functionTerms(
-            className, 
-            method, 
-            Model.prototype['_c_' + method ], 
-            terms
-        );  
-
-        var missingArgs = (methodRules.argsLength !== arguments.length);
-
-        if (missingArgs) {
-            // @todo sort out
-            // Errors.missingArgs(className, method, methodRules.argNames);
-        }
-
-        methodRules.validateArgs(arguments);
-
-        var res = Model.prototype['_c_' + method].call(this, arguments);
-
-        var unexpectedReturn = (terms.returnType && typeof res !== terms.returnType);
-
-        if (unexpectedReturn) {
-            Errors.badReturn(className, method, terms.returnType, typeof res);
-        }
-
-        return res;
-    }
+    // @todo add a way to only add missing methods
 }
 
-Contract.prototype.contractify = function(Model) {
-
-    if (!Model.agreements) {
-        return;
-    }
-
-    var className = reflect.getClassName(Model.toString());
-
-    for (var i in Model.agreements) {
-
-       var term  = Model.agreements[i];
-       var terma = this.getTerm(term);
-
-       for (var method in terma) {
-            
-            var hasNoRequirements = (terma[method].requirements.length === 0);
-
-            if (hasNoRequirements) {
-                continue;
-            }
-            
-            this.reBind(Model, className, method, terma[method]); 
-       }
-   }
-};
-
-Contract.prototype.addMissing = function(Model) {
-
-    if (!Model.agreements) {
-        return;
-    }
-
-    var placeHolder = function(name, method){
-        
-        return function(){
-            Errors.missingDefinition(name, method);
-        }
-    };
-
-    var className = reflect.getClassName(Model.toString());
-
-    for (var i in Model.agreements) {
-
-       var term  = Model.agreements[i];
-       var terms = this.getTerm(term);
-
-       for (var method in terms) {
-            
-            if (Model.prototype[method]) {
-                continue;
-            }
-
-            Model.prototype[method] = placeHolder(className, method);
-       }
-   }
-};
-
-module.exports          = Contract;
-module.exports.TermRule = TermRule;
+module.exports = Contract;
+module.exports.TermAgreement = TermAgreement;
