@@ -83,7 +83,7 @@ class Contract {
         this.terms[agreement] = this.getTerms(agreement);
 
         for (const method in terms) {
-            const term        = new TermAgreement(agreement, method);
+            const term = new TermAgreement(agreement, method);
 
             term.readRequirements(terms[method]);
             this.terms[agreement][term.method] = term;
@@ -161,8 +161,6 @@ class Contract {
         // @note a method can fulfill multple contracts
         //       unsure how below will be affected
         const method = Model.prototype[newAttr] = Model.prototype[methodName];
-
-        
 
         Model.prototype[methodName] = function() {
 
