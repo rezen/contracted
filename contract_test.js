@@ -1,11 +1,10 @@
 'use strict';
 
-var assert   = require('assert');
-var Contract = require('./contract');
-
-var contract = new Contract();
+const assert   = require('assert');
+const Contract = require('./contract');
 
 describe('Contract', function() {
+    const contract = new Contract();
 
     describe('#addTerms()', function() {
 
@@ -27,13 +26,13 @@ describe('Contract', function() {
             }
         });
 
-        it('Term is added to contract with configured name', function () {
+        it('Term is added to contract with configured name', function() {
            assert.equal(typeof contract.terms.StorageHandler, 'object');
            assert.equal(contract.terms.StorageHandler.get instanceof Contract.TermAgreement, true);
         });
 
-        it('Adding a verbose config vs. lite will end up with the same config', function () {
-            var configs = {}
+        it('Adding a verbose config vs. lite will end up with the same config', function() {
+            const configs = {}
             
             configs.verbose = JSON.stringify(contract.terms.StorageHandler);
 
@@ -56,7 +55,7 @@ describe('Contract', function() {
 
     describe('#agreement()', function() {
 
-        var evalutions = {
+        const evalutions = {
             missingMethod: {save: function(name, handler) {}},
             missingArgs1: {save: function(name) {}},
             missingArgs2: {save: function() {}},
