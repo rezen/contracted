@@ -33,4 +33,15 @@ function methodArgs(method) {
     return result;
 }
 
-module.exports.methodArgs =  methodArgs;
+function isType(value, expects) {
+    const test = [typeof value];
+
+    if (value.constructor && value.constructor.name) {
+        test.push(value.constructor.name);
+    }
+
+    return (test.indexOf(expects) !== -1);
+}
+
+module.exports.isType     = isType;
+module.exports.methodArgs = methodArgs;

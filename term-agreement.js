@@ -1,5 +1,6 @@
 'use strict';
 
+const help    = require('./help');
 const Errors  = require('./errors');
 const TermArg = require('./term-arg');
 
@@ -49,14 +50,11 @@ class TermAgreement {
      * @param  {Mixed} res
      */
     validateReturn(res) {
-
         if (!this.returnType) {
             return true;
         }
 
-        const unexpectedReturn = (typeof res !== this.returnType);
-
-        if (unexpectedReturn) {
+        if (!help.isType(res, this.returnType)) {
             Errors.badReturn(this.fromClass, this, typeof res);
         }
 
@@ -77,7 +75,6 @@ class TermAgreement {
      * @param  {Array|Object} requirements
      */
     readRequirements(requirements) {
-
         let args = requirements = requirements || [];
         const isConfig = (typeof requirements === 'object' && requirements.args);
 
@@ -93,6 +90,11 @@ class TermAgreement {
         this.args = args.map((arg, idx) => {
             return this.toArg(arg, idx);
         });
+    }
+
+    arguments(args, terms) {
+        this.readRequirements(terms);
+        this.validateArguments(args);
     }
 
     /**

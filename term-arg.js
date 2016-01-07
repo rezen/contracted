@@ -1,5 +1,6 @@
 'use strict';
 
+const help    = require('./help');
 const Errors  = require('./errors');
 
 const REGEX_MODEL = /^[A-Z]/;
@@ -8,7 +9,8 @@ class TermArg {
 
     constructor(terms, arg, idx) {
         this.terms = terms;
-        this.idx  = idx;
+        this.idx   = idx;
+        this.optional = false;
         this.parseArg(arg);
     }
 
@@ -18,14 +20,20 @@ class TermArg {
      * @param  {String} arg
      */
     parseArg(arg) {
+        const isOptional = (arg.indexOf('?') !== -1);
+
+        if (isOptional) {
+            this.optional = true;
+            arg = arg.replace(/\?/g, '');
+        }
+
         const hasDetails = (arg.indexOf(':') !== -1);
             
         if (hasDetails) {
-           const details = arg.split(':');
+           const tmp = arg.split(':');
 
-           this.name = details[0];
-           this.demands = details[1];
-           return;
+           this.name = tmp[0];
+           arg = tmp[1];
         }
 
         const isModel = REGEX_MODEL.test(arg);
@@ -36,6 +44,8 @@ class TermArg {
             this.demands = 'function';
         } else if (arg === 'options'){
             this.demands = 'object';
+        } else {
+            this.demands = arg;
         }
     }
 
@@ -56,15 +66,28 @@ class TermArg {
      * @param  {Mixed} value
      */
     testValue(value) {
-        if (typeof value !== this.demands) {
+
+        if (value === undefined) {
+
+            if (this.optional) {
+                return;
+            }
+
+            if (this.demands === 'mixed' ) {
+                Errors.badArgValue('', this.terms, this, undefined);
+            }
+        }
+
+        if (this.demands !== 'mixed' && !help.isType(value, this.demands)) {
             Errors.badArgValue('', this.terms, this, typeof value);
         }
     }
 
     toJSON() {
         return {
-            requirement: this.requirement,
-            name: this.name
+            name: this.name,
+            demands: this.demands,
+            optional: this.optional
         };
     }
 }
