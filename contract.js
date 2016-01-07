@@ -166,6 +166,10 @@ class Contract {
         }
     }
 
+    arguments(args, terms) {
+        this.toTerm('', '').arguments(args, terms);
+    }
+
     agreement(Model, terms) {
 
         terms = Array.isArray(terms) ? terms : [terms];

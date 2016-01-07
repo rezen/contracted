@@ -3,8 +3,35 @@
 const assert   = require('assert');
 const Contract = require('./contract');
 
+class Item {}
+
 describe('Contract', function() {
     const contract = new Contract();
+
+    describe('#arguments()', function() {
+
+        function toPerson(name, dob) {
+            contract.toTerm('?', 'toPerson').arguments(arguments, ['string', 'Date?']);
+            return {name, dob};
+        }
+
+        it('Checks expected args', function() {
+            toPerson('Bob', new Date(1995, 11, 17));
+        });
+
+        it('Passes with skipping optional argument', function() {
+            toPerson('Bob');
+        });
+
+        it('Throws errors with bad types', function() {
+            assert.throws(function() {
+                toPerson('Bob', '2015-12-11');
+            }, function(err) {
+                console.log(err);
+                return (err.toString().indexOf('to be type `Date`') !== -1);
+            });
+        });
+    });
 
     describe('#addTerms()', function() {
 
@@ -13,15 +40,16 @@ describe('Contract', function() {
             methods : {
                 save: {
                     args : [
-                        'name:string',
+                        'name:string?',
                         'handler:function'
                     ],
                    return : 'string'
                 },
                 get: {
                     args : [
-                        'name:string', 'handler:function'
-                    ]
+                        'name:mixed', 'handler:function'
+                    ],
+                    return : 'Item'
                 } 
             }
         });
@@ -40,10 +68,10 @@ describe('Contract', function() {
             
             contract.addTerms('StorageHandler', {
                 'save->string' : [
-                    'name:string', 'handler:function'
+                    'name:string?', 'handler:function'
                 ],
-                get  : [
-                    'name:string', 'handler:function'
+                'get->Item'  : [
+                    'name:mixed', 'handler:function'
                 ]
             });
 
@@ -110,7 +138,7 @@ describe('Contract', function() {
         };
 
         LocalStorage.prototype.get = function(name, handler) {
-            return 'name';
+            return new Item();
         }
 
         LocalStorage.agreements = [
@@ -132,6 +160,12 @@ describe('Contract', function() {
             assert.doesNotThrow(storage.save.bind(storage, '9', function(){}));
         });
 
+        it('Will allow optional arguments', function() {
+            assert.throws(storage.save.bind(storage, 9, function(){}));
+            assert.doesNotThrow(storage.save.bind(storage, undefined, function(){}));
+        });
+
+
         it('Will validate the return value', function() {
 
             // Force prototype to return number
@@ -144,6 +178,13 @@ describe('Contract', function() {
             LocalStorage.prototype[saveAttr] = function(name, handler) {return '1';};
 
             assert.equal(storage.save('9', function(){}), '1');
+        });
+
+
+        it('Will validate the return value model', function() {
+            const getAttr = Symbol.for('_fn_get');
+
+            assert.equal(storage.get('9', function(){}) instanceof Item, true);
         });
 
     });
