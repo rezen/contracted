@@ -16,7 +16,7 @@ const TermAgreement = require('./term-agreement');
  * @todo add a way to only add missing methods
  * 
  * `````````````````````````````````````````````````````````
- * Contract.addTerm('StorageHandler', {'save' : 2,'get':1 });
+ * Contract.addTerms('StorageHandler', {'save' : 2,'get':1 });
  * 
  * `````````````````````````````````````````````````````````
  *
@@ -25,36 +25,11 @@ const TermAgreement = require('./term-agreement');
  * 
  * ````````````````````````````````````````````````````````
  * // Basic setup for terms
- * Contract.addTerm('StorageHandler', {
+ * Contract.addTerms('StorageHandler', {
  *     save : ['name', 'callback'],
- *     get  : ['name'] // can also be get : 'name'
+ *     get  : ['name'] // can also be get: 'name'
  * });
- *
- * // Specify return type and expected arg types
- * Contract.addTerm('StorageHandler', {
- *     // method called save, 
- *     // param[0]{name='name', type: 'string'}, param[1]{name='callback', type: 'function'}
- *     // returns string
- *    'save->string' : ['name:string', 'callback'], // callback is known as a function 
- *    get  : 'name:string' // can also be get : ['name:string']
- *    'get->Promise'
- * });
- *
- * // Use an existing function/class to source
- * // for terms
- * function StorageHandler() {}
- * 
- * StorageHandler.prototype.save = function(name, callback) {
- *     return '';
- * };
- *
- * StorageHandler.prototype.get = function(name) {}
- *
- * Contract.addTerm(StorageHandler);
- * 
- * ````````````````````````````````````````````````````````
  */
-
 class Contract {
     constructor(validator) {
 
@@ -267,4 +242,3 @@ class Contract {
 }
 
 module.exports = Contract;
-module.exports.TermAgreement = TermAgreement;
