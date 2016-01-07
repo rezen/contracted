@@ -6,9 +6,18 @@ const REGEX_MODEL = /^[A-Z]/;
        
 class TermArg {
 
-    constructor(rule, arg) {
-        this.rule = rule;
+    constructor(terms, arg, idx) {
+        this.terms = terms;
+        this.idx  = idx;
+        this.parseArg(arg);
+    }
 
+    /**
+     * Parse details about the arg
+     *
+     * @param  {String} arg
+     */
+    parseArg(arg) {
         const hasDetails = (arg.indexOf(':') !== -1);
             
         if (hasDetails) {
@@ -30,10 +39,25 @@ class TermArg {
         }
     }
 
-    testArg(arg) {
-        if (arg !== this.name) {
-            // Errors.badArgName(className, methodName, argName, fnArgName, idx);
-            throw new Error('Bad arg name');
+    /**
+     * Does the arg name match up?
+     * 
+     * @param  {String} name
+     */
+    testName(name) {
+        if (name !== this.name) {
+            Errors.badArgName('', this.terms, this, arg);
+        }
+    }
+
+    /**
+     * Does the arg value match up?
+     *
+     * @param  {Mixed} value
+     */
+    testValue(value) {
+        if (typeof value !== this.demands) {
+            Errors.badArgValue('', this.terms, this, typeof value);
         }
     }
 

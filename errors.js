@@ -1,24 +1,43 @@
 'use strict';
 
+function toName(Model) {
+
+    if (typeof Model === 'string') {
+        return Model;
+    }
+
+    return Model.name || '';
+}
+
 const Errors = {
-    missingDefinition : function(className, methodName) {
+    missingDefinition : function(Model, terms) {
         throw new Error(
-            className +  ' Interface | missing_definition | @' + methodName
+            toName(Model) +  ' Interface | missing_definition | @' + terms.method
         );
     },
-    missingArgs : function(className, methodName, argNames) {
+    missingArgs : function(Model, terms) {
         throw new Error(
-           className +  ' Interface | missing_args | expects @' + methodName + '(' + argNames.join(', ') + ')'
+           toName(Model) +  ' Interface | missing_args | expects @' + terms.method + '(' + terms.getArgNames().join(', ') + ')'
         );
     },
-    badArgName : function(className, methodName, validArgName, badArgName, idx) {
+    badArgName : function(Model, terms, args, badArg) {
+
+        idx   = idx || '?';
+
         throw new Error(
-            className +  ' Interface |  bad_argument_name (' + ( idx) + ') | expects ('+ validArgName + ') not('+ badArgName +') for @' + methodName + ' '
+            toName(Model)  +  ' Interface |  bad_argument_name (' + (args.idx) + ') | expects ('+ args.name + ') not('+ badArg +') for @' + methodName + ' '
         );
     },
-    badReturn : function(className, methodName, validReturnType, invalidReturnType) {
+    badArgValue : function(Model, terms, args, badValue) {
+
+       throw new Error(
+            toName(Model)  +  ' Interface | bad_arg_value | expects type `' + shouldBe + '` for arg('+arg.name + ')' 
+        );
+    },
+    badReturn : function(Model, terms, invalidReturnType) {
+
         throw new Error(
-           className +  ' | bad_return | expects `' + validReturnType + '` not `' + invalidReturnType + '`'
+           toName(Model) +  ' | bad_return | expects `' + terms.returnType + '` not `' + invalidReturnType + '`'
         );
     }
 };

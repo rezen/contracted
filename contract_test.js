@@ -7,9 +7,9 @@ var contract = new Contract();
 
 describe('Contract', function() {
 
-    describe('#addTerm()', function() {
+    describe('#addTerms()', function() {
 
-        contract.addTerm({
+        contract.addTerms({
             name : 'StorageHandler',
             methods : {
                 save: {
@@ -39,7 +39,7 @@ describe('Contract', function() {
 
             delete contract.terms.StorageHandler;
             
-            contract.addTerm('StorageHandler', {
+            contract.addTerms('StorageHandler', {
                 'save->string' : [
                     'name:string', 'handler:function'
                 ],
