@@ -2,6 +2,7 @@
 
 const assert   = require('assert');
 const Contract = require('./contract');
+const TermAgreement = require('./term-agreement');
 
 class Item {}
 
@@ -27,7 +28,6 @@ describe('Contract', function() {
             assert.throws(function() {
                 toPerson('Bob', '2015-12-11');
             }, function(err) {
-                console.log(err);
                 return (err.toString().indexOf('to be type `Date`') !== -1);
             });
         });
@@ -56,7 +56,7 @@ describe('Contract', function() {
 
         it('Term is added to contract with configured name', function() {
            assert.equal(typeof contract.terms.StorageHandler, 'object');
-           assert.equal(contract.terms.StorageHandler.get instanceof Contract.TermAgreement, true);
+           assert.equal(contract.terms.StorageHandler.get instanceof TermAgreement, true);
         });
 
         it('Adding a verbose config vs. lite will end up with the same config', function() {
