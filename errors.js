@@ -29,9 +29,9 @@ const Errors = {
         );
     },
     badArgValue : function(Model, terms, args, badValue) {
-
-       throw new Error(
-            toName(Model)  +  ' Interface | bad_arg_value | expects type `' + shouldBe + '` for arg('+arg.name + ')' 
+        const arg = (args.name || args.idx);
+        throw new Error(
+            toName(Model)  +  ' Interface | bad_arg_value | @' + terms.method + ' expects arg('+  arg + ') to be type `' + args.demands + '` not(`' + badValue + '`)'
         );
     },
     badReturn : function(Model, terms, invalidReturnType) {
