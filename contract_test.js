@@ -1,7 +1,7 @@
 'use strict';
 
 const assert   = require('assert');
-const Contract = require('./contract');
+const Contract = require('./index');
 const TermAgreement = require('./term-agreement');
 
 class Item {}

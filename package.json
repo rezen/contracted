@@ -1,6 +1,6 @@
 {
   "name": "contracted",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Small & focused contract library to ensure expectations are met!",
   "author": "Andres Hermosilla <an2dres5m@gmail.com>",
   "scripts": {
