@@ -14,10 +14,10 @@ checking of the drivers to ensure the expected methods exists.
 ```js
 'use strict';
 
-const Contract = require('contract');
+const Contracted = require('contracted');
 const Integration = require('./integration');
 
-const contract = new Contract();
+const contract = new Contracted();
 
 // What are the terms we expect to be fullfilled?
 contract.addTerms('StorageHandler', {
