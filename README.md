@@ -1,4 +1,7 @@
 ## contracted
+[![NPM Version][npm-image]][npm-url] <br />
+
+## About
 There are many situations where explicit expectations help stability and make integrations easier.
 Any sort of library that can interact with multiple drivers
 (e.g. Dropbox, S3, Drive, etc.) can benefit from explicitly stating the expectations of
@@ -10,7 +13,11 @@ There are multiple drivers (redis, mongodb, memory) for caching and the core lib
 expects the drivers to implement specific methods. The author implements his own 
 checking of the drivers to ensure the expected methods exists.
 
-###### Example
+## Install
+`npm install contracted`
+
+
+## Example
 ```js
 'use strict';
 
@@ -33,10 +40,10 @@ class Storage {
         this.driver = null;
     }
 
-    use(Driver) {
+    use(Integration) {
         // Does the integration meet our contract expectations?
         this.contract.agreement(Integration, 'StorageHandler');
-        this.drivers[Driver.name] = new Driver(this);
+        this.drivers[Integration.name] = new Integration(this);
     }
 
     save(name, callback) {
@@ -47,3 +54,10 @@ class Storage {
 }
 
 ````
+
+## License
+
+  [MIT](LICENSE)
+
+[npm-image]: https://img.shields.io/npm/v/contracted.svg
+[npm-url]: https://npmjs.org/package/contracted
