@@ -4,7 +4,7 @@
   "description": "Small & focused contract library to ensure expectations are met!",
   "author": "Andres Hermosilla <an2dres5m@gmail.com>",
   "scripts": {
-    "test": "mocha contract_test.js",
+    "test": "mocha contract_test.js"
   },
   "repository": {
     "type": "git",
@@ -17,7 +17,10 @@
   ],
   "license": "MIT",
   "devDependencies": {
-    "mocha": "*",
+    "mocha": "*"
   },
-  "dependencies": {}
+  "dependencies": {},
+  "engines": {
+    "node": ">=4.0.0"
+  }
 }
