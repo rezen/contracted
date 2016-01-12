@@ -122,7 +122,7 @@ class Contract {
      * @param  {Function} Model
      * @param  {String} agreement
      */
-    checkAgreement(Model, agreement) {
+    checkAgreement(agreement, Model) {
 
         const terms  = this.getTerms(agreement);
         let test     = Model;
@@ -134,29 +134,57 @@ class Contract {
         for (const method in terms) {
 
             this.checkTerms(
+                terms[method],
                 Model,
-                test[method],
-                terms[method]
+                test[method]
             );
         }
+
+        if (!Model.$fulfills) {
+            Model.$fulfills = {};
+        }
+
+        Model.$fulfills[agreement] = true;
     }
 
-    arguments(args, terms) {
-        this.toTerm('', '').arguments(args, terms);
+    term(terms) {
+        return () => {
+            this.argument(terms, argument);
+        };
     }
 
-    agreement(Model, terms) {
 
+    arguments(terms, args)  {
+        const term = this.toTerm('', '');
+        const run = (args) => {
+            term.arguments(terms, args);
+        };
+
+        // if no args ... assume decorator
+        if (!args) {
+            return run;
+        }
+
+        return run.call(this, args);
+    }
+
+    agreement(terms, Model) {
         terms = Array.isArray(terms) ? terms : [terms];
+        const run = (Model) => {
+            terms.map(term => {
+                this.checkAgreement(term, Model);
+            });
+        };
 
-        terms.map(term => {
-            this.checkAgreement(Model, term);
-        });
+        // if no Model ... assume decorator
+        if (!Model) {
+            return run;
+        }
 
-        return true;
+        return run.call(this, Model);
     }
 
-    checkTerms(Model, method, terms) {
+    checkTerms(terms, Model, method) {
 
         if (method === undefined) {
             Errors.missingDefinition(Model, terms);
@@ -191,9 +219,9 @@ class Contract {
         Model.prototype[methodName] = function() {
 
             const methodTerms = Contract.prototype.checkTerms(
+                terms,
                 Model,
-                method, 
-                terms
+                method
             );
 
             methodTerms.validateArguments(arguments);
@@ -218,11 +246,11 @@ class Contract {
      */
     contractify(Model) {
 
-        if (!Model.agreements) {
+        if (!Model.$agreements) {
             return;
         }
 
-        Model.agreements.map(agreement => {
+        Model.$agreements.map(agreement => {
            const terms = this.getTerms(agreement);
 
            for (const methodName in terms) {

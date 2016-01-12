@@ -92,7 +92,7 @@ class TermAgreement {
         });
     }
 
-    arguments(args, terms) {
+    arguments(terms, args) {
         this.readRequirements(terms);
         this.validateArguments(args);
     }

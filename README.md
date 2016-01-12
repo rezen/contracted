@@ -32,7 +32,7 @@ contract.addTerms('StorageHandler', {
    'get->Promise'  : 'name:string' // can also be ['name:string']
 });
 
-// ...
+// Example class using contracted
 class Storage {
     constructor(contract) {
         this.contract = contract;
@@ -42,15 +42,17 @@ class Storage {
 
     use(Integration) {
         // Does the integration meet our contract expectations?
-        this.contract.agreement(Integration, 'StorageHandler');
+        this.contract.agreement('StorageHandler', Integration);
         this.drivers[Integration.name] = new Integration(this);
     }
 
-    save(name, callback) {
-        return this.driver.save(name, callback);
-    }
-
     // ... get, etc
+}
+
+// You can also get down & fancy with ES7 decorators
+@contract.arguments('string', 'function?')
+function save(name, callback) {
+    // ...
 }
 
 ````

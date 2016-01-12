@@ -12,7 +12,7 @@ describe('Contract', function() {
     describe('#arguments()', function() {
 
         function toPerson(name, dob) {
-            contract.toTerm('?', 'toPerson').arguments(arguments, ['string', 'Date?']);
+            contract.arguments(['string', 'Date?'], arguments);
             return {name, dob};
         }
 
@@ -27,6 +27,23 @@ describe('Contract', function() {
         it('Throws errors with bad types', function() {
             assert.throws(function() {
                 toPerson('Bob', '2015-12-11');
+            }, function(err) {
+                return (err.toString().indexOf('to be type `Date`') !== -1);
+            });
+        });
+
+        it('Can be used as a decorator', function() {
+            const argTest = contract.arguments(['string', 'Date?']);
+
+            function toAnimal(name, dob) {
+                argTest(arguments);
+                return {name, dob};
+            }
+
+            toAnimal('Fluffy', new Date(1995, 11, 17));
+
+            assert.throws(function() {
+                argTest('Fluffy', '2015-12-11');
             }, function(err) {
                 return (err.toString().indexOf('to be type `Date`') !== -1);
             });
@@ -97,7 +114,7 @@ describe('Contract', function() {
 
         it('Throws an exception if a method is missing - missing @get', function() {
             assert.throws(function() {
-                contract.agreement(evalutions.missingMethod, 'StorageHandler');
+                contract.agreement('StorageHandler', evalutions.missingMethod);
 
             }, function(err) {
                 return (err.toString().indexOf('@get') !== -1);
@@ -106,7 +123,7 @@ describe('Contract', function() {
 
         it('Throws an exception if a method is missing an arg - missing `handler` for @get', function() {
             assert.throws(function() {
-                contract.agreement(evalutions.missingArgs1, 'StorageHandler');
+                contract.agreement('StorageHandler', evalutions.missingArgs1);
 
             }, function(err) {
                 return (err.toString().indexOf('missing_args') !== -1);
@@ -115,7 +132,7 @@ describe('Contract', function() {
 
         it('Throws an exception if a method is missing an arg - missing `handler` for @get', function() {
             assert.throws(function() {
-                contract.agreement(evalutions.missingArgs2, 'StorageHandler');
+                contract.agreement('StorageHandler', evalutions.missingArgs2);
 
             }, function(err) {
                 return (err.toString().indexOf('missing_args') !== -1);
@@ -123,7 +140,7 @@ describe('Contract', function() {
         });
 
         it('Passes with contract fullfillment', function() {
-            assert.doesNotThrow(contract.agreement.bind(contract, Fullfill, 'StorageHandler'));
+            assert.doesNotThrow(contract.agreement.bind(contract, 'StorageHandler', Fullfill));
         });
     });
 
@@ -141,7 +158,7 @@ describe('Contract', function() {
             return new Item();
         }
 
-        LocalStorage.agreements = [
+        LocalStorage.$agreements = [
             'StorageHandler'
         ];
 
