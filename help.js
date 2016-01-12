@@ -43,5 +43,10 @@ function isType(value, expects) {
     return (test.indexOf(expects) !== -1);
 }
 
+function argsToArray(args) {
+    return Array.prototype.slice.call(args);
+}
+
+module.exports.argsToArray = argsToArray;
 module.exports.isType     = isType;
 module.exports.methodArgs = methodArgs;
